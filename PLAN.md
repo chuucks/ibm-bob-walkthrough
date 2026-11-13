@@ -96,3 +96,9 @@ We use CSS variables mapping back to the standard Carbon color palette:
    * Branch: *main*, Folder: */ (root)*
    * Save.
 4. Your presentation will reside live at `https://<username>.github.io/<repository-name>/`.
+
+---
+
+## 5. Repository Status
+* **Status**: Initialized & Live 🚀
+* **Primary Branch**: Active and successfully pushed to GitHub
