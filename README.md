@@ -2,7 +2,7 @@
 
 An interactive, lightweight, and responsive single-page HTML presentation detailing the engineering paradigms, capabilities, and configurations of **IBM Bob (AI Software Development Lifecycle Partner)**.
 
-This walkthrough is based on official developer guidelines and Carlos Salazar's technical overview presentation: *"Software Engineering Practice in the age of AI Coding"*.
+This walkthrough is based on official developer guidelines and Carlos Salazar's technical overview presentation: *"IBM Bob walkthrough"*, aimed for major engineering students.
 
 👉 **View the Live Presentation on GitHub Pages:** **[https://chuucks.github.io/ibm-bob-walkthrough/](https://chuucks.github.io/ibm-bob-walkthrough/)**
 
