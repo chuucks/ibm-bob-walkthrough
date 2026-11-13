@@ -1,0 +1,19 @@
+# Environment files and credentials
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+certs/
+secrets/
+credentials/
+
+# System configuration and sensitive assets
+.bob/secrets/
+.bob/*.key
+config.yaml
+
+# Build and dependencies
+node_modules/
+dist/
+build/

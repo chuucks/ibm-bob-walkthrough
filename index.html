@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IBM Bob — Technical Walkthrough</title>
+  <style>
+    /* --- CSS Custom Variables (IBM Carbon-Inspired Palette) --- */
+    :root[data-theme="light"] {
+      --bg-primary: #f4f4f4;       /* Carbon Gray 10 */
+      --bg-secondary: #ffffff;     /* Carbon White */
+      --bg-sidebar: #ffffff;       /* Sidebar background */
+      --text-primary: #161616;     /* Carbon Gray 100 */
+      --text-secondary: #525252;   /* Carbon Gray 70 */
+      --border-color: #e0e0e0;     /* Carbon Gray 20 */
+      --interactive: #0f62fe;      /* Carbon Blue 60 */
+      --interactive-hover: #0353e9;/* Carbon Blue 70 */
+      --accent-purple: #8a3ffc;    /* Carbon Purple 60 */
+      --card-bg: #ffffff;
+      --bubble-bg: #e0e0e0;        /* Gray 20 speech bubble */
+      --bubble-text: #161616;
+      --shadow-color: rgba(0, 0, 0, 0.05);
+      --link-color: #0f62fe;
+    }
+
+    :root[data-theme="dark"] {
+      --bg-primary: #161616;       /* Carbon Gray 100 */
+      --bg-secondary: #262626;     /* Carbon Gray 80 */
+      --bg-sidebar: #161616;       /* Sidebar background */
+      --text-primary: #f4f4f4;     /* Carbon Gray 10 */
+      --text-secondary: #c6c6c6;   /* Carbon Gray 30 */
+      --border-color: #393939;     /* Carbon Gray 70 */
+      --interactive: #78a9ff;      /* Carbon Blue 30 */
+      --interactive-hover: #4589ff;/* Carbon Blue 40 */
+      --accent-purple: #a7f;       /* Carbon Purple 30 */
+      --card-bg: #262626;
+      --bubble-bg: #393939;        /* Gray 70 speech bubble */
+      --bubble-text: #f4f4f4;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --link-color: #78a9ff;
+    }
+
+    /* --- Base Resets & CSS Reset --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      min-height: 100vh;
+      transition: background-color 0.2s, color 0.2s;
+      overflow-x: hidden;
+    }
+
+    /* --- Left Sidebar Navigation --- */
+    aside {
+      width: 280px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      padding-top: 2rem;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .brand-section {
+      padding: 0 1.5rem 1.5rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--interactive);
+    }
+
+    .brand-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .nav-menu {
+      list-style: none;
+      margin-top: 1.5rem;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    .nav-item button {
+      width: 100%;
+      background: none;
+      border: none;
+      text-align: left;
+      padding: 1rem 1.5rem;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-left: 4px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .nav-item button:hover {
+      background-color: var(--bg-primary);
+    }
+
+    .nav-item.active button {
+      background-color: var(--bg-primary);
+      border-left-color: var(--interactive);
+      font-weight: 600;
+      color: var(--interactive);
+    }
+
+    /* --- Theme Selector Toggle (Top Right) --- */
+    .header-controls {
+      position: fixed;
+      top: 1rem;
+      right: 1.5rem;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .theme-toggle {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 4px var(--shadow-color);
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--bg-primary);
+      border-color: var(--interactive);
+    }
+
+    /* --- Main Page Container --- */
+    main {
+      margin-left: 280px;
+      flex-grow: 1;
+      padding: 3.5rem 4.5rem;
+      max-width: 1200px;
+      transition: margin-left 0.2s;
+    }
+
+    .slide-page {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .slide-page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- Layout & Typography Styles --- */
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-top: 2.5rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--interactive);
+    }
+
+    p {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    strong {
+      color: var(--text-primary);
+    }
+
+    .accent-text {
+      color: var(--accent-purple);
+      font-weight: 600;
+    }
+
+    /* --- Interactive Link Icons --- */
+    a.doc-link {
+      color: var(--link-color);
+      text-decoration: none;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    a.doc-link:hover {
+      text-decoration: underline;
+    }
+
+    /* --- Cover Page Elements --- */
+    .cover-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 75vh;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-secondary);
+      padding: 4.5rem;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 12px var(--shadow-color);
+    }
+
+    .cover-title {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.15;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    .cover-subtitle {
+      font-size: 1.5rem;
+      color: var(--interactive);
+      margin-bottom: 2.5rem;
+      font-weight: 400;
+    }
+
+    .cover-meta {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+
+    .disclaimer-box {
+      border-top: 1px solid var(--border-color);
+      padding-top: 1.5rem;
+      margin-top: auto;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* --- Interactive Bob Widget (Cover Page) --- */
+    .bob-widget-container {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin: 2rem 0;
+      padding: 1.5rem;
+      background-color: var(--bg-primary);
+      border-radius: 8px;
+      border-left: 4px solid var(--interactive);
+      max-width: 750px;
+    }
+
+    .bob-avatar {
+      flex-shrink: 0;
+      width: 75px;
+      height: 75px;
+      background-color: var(--bg-secondary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px var(--shadow-color);
+      overflow: hidden;
+    }
+
+    .bob-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .speech-bubble {
+      position: relative;
+      background: var(--bubble-bg);
+      color: var(--bubble-text);
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.95rem;
+      flex-grow: 1;
+      box-shadow: 0 2px 4px var(--shadow-color);
+    }
+
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 10px 10px 10px 0;
+      border-style: solid;
+      border-color: transparent var(--bubble-bg) transparent transparent;
+      display: block;
+      width: 0;
+    }
+
+    .tip-header {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--interactive);
+      margin-bottom: 0.25rem;
+    }
+
+    .next-tip-btn {
+      background: none;
+      border: none;
+      color: var(--interactive);
+      cursor: pointer;
+      font-size: 0.8rem;
+      text-decoration: underline;
+      margin-top: 0.5rem;
+      display: inline-block;
+    }
+
+    .next-tip-btn:hover {
+      color: var(--interactive-hover);
+    }
+
+    /* --- Presentation Content Cards --- */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      padding: 1.75rem;
+      border-radius: 6px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px var(--shadow-color);
+    }
+
+    .card h3 {
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .highlight-box {
+      background-color: var(--bg-secondary);
+      border-left: 4px solid var(--interactive);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .highlight-box code {
+      background-color: var(--bg-primary);
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }
+
+    /* --- List Styling --- */
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--text-secondary);
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+
+    /* --- Interactive Button Links --- */
+    .button-link {
+      display: inline-flex;
+      align-items: center;
+      background-color: var(--interactive);
+      color: #ffffff !important;
+      padding: 0.75rem 1.5rem;
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      transition: background-color 0.15s;
+    }
+
+    .button-link:hover {
+      background-color: var(--interactive-hover);
+    }
+
+    /* --- Footer Source Info --- */
+    .footer-source {
+      margin-top: 3.5rem;
+      border-top: 1px solid var(--border-color);
+      padding-top: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* --- Responsive Controls --- */
+    @media (max-width: 900px) {
+      aside {
+        width: 60px;
+        padding-top: 1rem;
+      }
+      .brand-title, .brand-subtitle, .nav-item span {
+        display: none;
+      }
+      .brand-section {
+        padding: 1rem;
+        text-align: center;
+      }
+      main {
+        margin-left: 60px;
+        padding: 2rem;
+      }
+      .nav-item button {
+        padding: 1rem;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LEFT SIDEBAR NAVIGATION -->
+  <aside>
+    <div class="brand-section">
+      <div class="brand-title">IBM Bob</div>
+      <div class="brand-subtitle">Technical walkthrough</div>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item active" onclick="switchPage('cover')">
+        <button>🏠 <span>Home</span></button>
+      </li>
+      <li class="nav-item" onclick="switchPage('intro')">
+        <button>💡 <span>Concepts & Loops</span></button>
+      </li>
+      <li class="nav-item" onclick="switchPage('capabilities')">
+        <button>🛠️ <span>Capabilities & Surfaces</span></button>
+      </li>
+      <li class="nav-item" onclick="switchPage('config')">
+        <button>📂 <span>Configuration & Code</span></button>
+      </li>
+      <li class="nav-item" onclick="switchPage('governance')">
+        <button>🛡️ <span>Security & Control</span></button>
+      </li>
+      <li class="nav-item" onclick="switchPage('resources')">
+        <button>🎓 <span>Certification & Path</span></button>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- HEADER CONTROLS (THEME SWITCHER) -->
+  <div class="header-controls">
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light and dark theme">
+      <span id="theme-icon">☀️</span> <span id="theme-text">Light Mode</span>
+    </button>
+  </div>
+
+  <!-- MAIN PRESENTATION CONTAINER -->
+  <main>
+
+    <!-- PAGE 1: COVER PAGE -->
+    <div id="page-cover" class="slide-page active">
+      <div class="cover-container">
+        <span class="accent-text" style="text-transform: uppercase; font-size: 0.9rem; letter-spacing: 2px; margin-bottom: 1rem;">Walkthrough</span>
+        <h1 class="cover-title">IBM Bob — Technical Walkthrough</h1>
+        <div class="cover-subtitle">Software Engineering Practice in the age of AI Coding</div>
+        
+        <div class="cover-meta">
+          <strong>Carlos Salazar</strong><br>
+          Technical Architect – Agentic AI / IBM
+        </div>
+
+        <!-- Interactive Bob Head Widget with tips -->
+        <div class="bob-widget-container">
+          <div class="bob-avatar">
+            <!-- Render the copied official IBM Bob image -->
+            <img src="Bob_image.png" alt="IBM Bob Mascot">
+          </div>
+          <div class="speech-bubble">
+            <div class="tip-header">Bob's Tip of the Day</div>
+            <div id="tip-content">Loading handy tip...</div>
+            <button class="next-tip-btn" onclick="nextTip()">Show another tip ↻</button>
+          </div>
+        </div>
+
+        <p style="font-size: 0.95rem; margin-top: 1rem;">
+          ℹ️ <em>The information displayed on this presentation is based on the official developer documentation. The goal of this content is educational only.</em>
+        </p>
+
+        <div class="disclaimer-box">
+          Disclaimer: The views expressed in this presentation are the author's own and do not represent the views of IBM.
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: CONCEPTS & LOOPS -->
+    <div id="page-intro" class="slide-page">
+      <h1>Core Concepts & Loop Engineering</h1>
+      <p>Understanding how raw Large Language Models evolve into Enterprise AI Coding Partners through robust software architectures.</p>
+      
+      <div class="grid-2">
+        <div class="card">
+          <h3>What is IBM Bob?</h3>
+          <p>An AI Software Development Lifecycle partner. Bob sits across the whole software development lifecycle and works natively against enterprise-scale repositories.</p>
+          <p><a href="https://bob.ibm.com/" target="_blank" class="doc-link">Official Site: bob.ibm.com ↗</a></p>
+        </div>
+
+        <div class="card">
+          <h3>What is an AI Agent?</h3>
+          <p>An Artificial Intelligence Agent is a system that autonomously performs tasks by designing workflows with available tools, powered by foundational LLMs.</p>
+          <p><a href="https://www.ibm.com/think/topics/ai-agents" target="_blank" class="doc-link">Read about AI Agents on IBM Think ↗</a></p>
+        </div>
+
+        <div class="card">
+          <h3>Agent Harness</h3>
+          <div class="highlight-box" style="margin-bottom: 0.75rem; padding: 0.75rem 1rem;">
+            <p class="accent-text" style="margin-bottom: 0; font-size: 1.15rem;">Agent = Model + Harness</p>
+          </div>
+          <p>A harness is all code, configuration, and execution logic that isn't the model itself. It provides state, tool execution, feedback loops, and boundaries.</p>
+        </div>
+
+        <div class="card">
+          <h3>Loop Engineering</h3>
+          <p>The practice of designing agentic workflows (or loops) that iteratively guide AI agents toward completing user goals with minimal human intervention.</p>
+        </div>
+      </div>
+
+      <div class="footer-source">
+        Source: <a href="https://bob.ibm.com/docs" target="_blank" class="doc-link">Official IBM Bob Docs - Core Concepts ↗</a> | <a href="https://www.ibm.com/think/topics/ai-agents" target="_blank" class="doc-link">IBM Think - AI Agents ↗</a>
+      </div>
+    </div>
+
+    <!-- PAGE 3: CAPABILITIES & SURFACES -->
+    <div id="page-capabilities" class="slide-page">
+      <h1>Capabilities & Surfaces</h1>
+      <p>How Bob interacts with codebases, system terminals, and external services in safe, configurable environments.</p>
+
+      <div class="highlight-box">
+        <h3>Four Primary Capabilities</h3>
+        <p>In a highly controlled and authorized manner, Bob is an active coding partner executing tools to:</p>
+        <ol style="margin-top: 0.5rem; margin-bottom: 0;">
+          <li><strong>Read repositories:</strong> Gathers deep context and analyzes complex files.</li>
+          <li><strong>Write files:</strong> Directly writes and modifies code or documents.</li>
+          <li><strong>Run terminal commands:</strong> Tests builds, runs tests, and applies lint/style.</li>
+          <li><strong>Call external services:</strong> Connects to authorized external APIs and tooling.</li>
+        </ol>
+      </div>
+
+      <h2>Product Surfaces</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Bob IDE</h3>
+          <p>Gathers context automatically from open editor tabs and repository directories. Features inline diff previews, rollback capabilities, literate coding, and Bobalytics.</p>
+        </div>
+        <div class="card">
+          <h3>Bob Shell</h3>
+          <p>Terminal-first surface. Accepts explicit <code>@file</code> reference tags. Runs interactively via <code>bob chat</code> or one-shot via <code>bob run</code> commands built for automation.</p>
+        </div>
+      </div>
+
+      <div class="footer-source">
+        Source: <a href="https://bob.ibm.com/docs/ide/introduction" target="_blank" class="doc-link">Official IBM Bob Docs - Capabilities & Surfaces ↗</a>
+      </div>
+    </div>
+
+    <!-- PAGE 4: CONFIGURATION & CODE -->
+    <div id="page-config" class="slide-page">
+      <h1>Configuration as a Code Artifact</h1>
+      <p>Bob's behavior is driven entirely by files that live in the repository. This makes agent rules reviewable, diffable, and auditable through the standard PR approval process.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>The Data Boundary (.bobignore)</h3>
+          <p>Defines which files Bob's tools can read or write. Utilises identical syntax to <code>.gitignore</code> and is workspace-scoped.</p>
+          <p class="accent-text">Important: .bobignore is always implicitly ignored itself. Bob can never read or rewrite its own access rules.</p>
+        </div>
+
+        <div class="card">
+          <h3>Workspace Context (AGENTS.md)</h3>
+          <p>Honours the emerging cross-vendor standard for agent instructions. Loaded automatically, versioned, and bridges the stateless gap across conversation sessions.</p>
+          <p><a href="https://agents.md" target="_blank" class="doc-link">View Agents.md standard ↗</a></p>
+        </div>
+
+        <div class="card">
+          <h3>The /init Command</h3>
+          <p>Scans a project structure and automatically generates a high-quality, structured <code>AGENTS.md</code> persistent context file. Run it inside Agent mode by typing <code>/init</code> in the chat.</p>
+        </div>
+
+        <div class="card">
+          <h3>Skills in Bob (.bob/skills/)</h3>
+          <p>A lightweight folder-based format containing a <code>SKILL.md</code> metadata descriptor and custom instructions. Easily bundle automation scripts, runbooks, or reference templates.</p>
+        </div>
+      </div>
+
+      <h2>Policy Priority & Load Order</h2>
+      <div class="highlight-box">
+        <p>Bob merges rules from multiple sources. Narrower scopes load later, putting them closer to the active task and giving them practical precedence over broader ones below:</p>
+        <ol style="margin-bottom: 0;">
+          <li><strong>Global Rules:</strong> <code>~/.bob/rules/</code></li>
+          <li><strong>Workspace Mode-specific Rules:</strong> <code>.bob/rules-{mode}/</code> (alongside mode custom instructions)</li>
+          <li><strong>Project Context:</strong> <code>AGENTS.md</code></li>
+          <li><strong>Workspace General Rules:</strong> <code>.bob/rules/</code></li>
+        </ol>
+      </div>
+
+      <div class="footer-source">
+        Source: <a href="https://bob.ibm.com/docs/ide/configuration/rules" target="_blank" class="doc-link">Official IBM Bob Docs - Configuration & Rules ↗</a>
+      </div>
+    </div>
+
+    <!-- PAGE 5: SECURITY & CONTROL -->
+    <div id="page-governance" class="slide-page">
+      <h1>Security, Control & Model Routing</h1>
+      <p>Enterprise-grade safety controls and performance optimizations built directly into Bob's core.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Least-Privilege Modes</h3>
+          <p>Personas in YAML that set role definition, custom instructions, and available tools:</p>
+          <ul>
+            <li><strong>Agent mode:</strong> Complete access, and the only mode allowed to execute terminal commands.</li>
+            <li><strong>Plan mode:</strong> Has Edit privileges but cannot run terminal commands.</li>
+            <li><strong>Ask mode:</strong> Read-only by design. Instructions prevent switching to edit/execute.</li>
+            <li><strong>Custom modes:</strong> Defined under <code>.bob/custom_modes.yaml</code>.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Runtime Permissions</h3>
+          <p>Approvals trigger <strong>one prompt at a time</strong>. Complex commands collapse into previews by default. Proposed terminal scripts are <strong>directly editable</strong> inside the prompt before approving.</p>
+        </div>
+
+        <div class="card">
+          <h3>Model Router</h3>
+          <p>A custom classifier trained on real Bob usage data. Maps tasks to three optimized tiers to balance quality, performance, and cost, preserving prefix cache:</p>
+          <ul>
+            <li><strong>Fast Tier</strong></li>
+            <li><strong>Premium Tier</strong></li>
+            <li><strong>Ultra Tier</strong></li>
+          </ul>
+          <p><a href="https://bob.ibm.com/blog/how-the-model-router-works/" target="_blank" class="doc-link">Read blog on Model Router ↗</a></p>
+        </div>
+
+        <div class="card">
+          <h3>Industry Standards</h3>
+          <ul>
+            <li><strong>MCP:</strong> Connect specialized servers under <code>.bob/mcp.json</code>.</li>
+            <li><strong>Hooks:</strong> Configure life-cycle automation triggers inside <code>.bob/settings.json</code>.</li>
+            <li><strong>Plugins:</strong> Install ecosystem plugins under <code>.bob/plugins/</code>.</li>
+            <li><strong>Rollback:</strong> Automatically snapshots project state before executing any command.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-source">
+        Source: <a href="https://bob.ibm.com/docs/ide/security" target="_blank" class="doc-link">Official IBM Bob Docs - Security & Model Routing ↗</a>
+      </div>
+    </div>
+
+    <!-- PAGE 6: CERTIFICATION & RESOURCES -->
+    <div id="page-resources" class="slide-page">
+      <h1>Path to IBM Bob Certification</h1>
+      <p>Demonstrate deep understanding of Bob's core capabilities, workflow automation, and secure enterprise practices.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>1. IBM Bob Free Trial</h3>
+          <p>Explore the full capabilities of your AI development partner with a 30-day free trial containing <strong>50 Bobcoins</strong>. No initial subscription required.</p>
+          <p><a href="https://bob.ibm.com/trial" target="_blank" class="button-link">Start Free Trial ↗</a></p>
+        </div>
+
+        <div class="card">
+          <h3>2. Get Certified</h3>
+          <p>Earn the official credential: <strong>IBM Certified Bob v2 Developer Associate (Exam C9010800)</strong> to signal your AI enterprise coding skills.</p>
+          <p><a href="https://www.ibm.com/training/certification/ibm-certified-bob-v2-developer-associate-C9010800" target="_blank" class="button-link">Certification Details ↗</a></p>
+        </div>
+      </div>
+
+      <h2>Official Tutorials & Resources</h2>
+      <ul>
+        <li><strong>Official Blog:</strong> <a href="https://bob.ibm.com/blog" target="_blank" class="doc-link">bob.ibm.com/blog ↗</a></li>
+        <li><strong>IDE Tutorials & Introduction:</strong> <a href="https://bob.ibm.com/docs/ide/tutorials/introduction" target="_blank" class="doc-link">bob.ibm.com/docs/ide/tutorials/introduction ↗</a></li>
+        <li><strong>Download Bob:</strong> <a href="https://bob.ibm.com/download" target="_blank" class="doc-link">bob.ibm.com/download ↗</a></li>
+        <li><strong>Developer Tutorials:</strong> <a href="https://developer.ibm.com/components/ibm-bob/tutorials/" target="_blank" class="doc-link">developer.ibm.com/components/ibm-bob/tutorials/ ↗</a></li>
+      </ul>
+
+      <div class="footer-source">
+        Source: <a href="https://bob.ibm.com/docs" target="_blank" class="doc-link">Official IBM Bob Docs - Getting Started & Resources ↗</a>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    /* --- Pure JavaScript Navigation & Tab Switching --- */
+    function switchPage(pageId) {
+      // Deactivate all slides
+      const slides = document.querySelectorAll('.slide-page');
+      slides.forEach(slide => slide.classList.remove('active'));
+
+      // Deactivate all navigation buttons
+      const navItems = document.querySelectorAll('.nav-item');
+      navItems.forEach(item => item.classList.remove('active'));
+
+      // Activate selected page
+      const targetPage = document.getElementById('page-' + pageId);
+      if (targetPage) {
+        targetPage.classList.add('active');
+      }
+
+      // Highlight active sidebar item
+      const activeBtn = Array.from(navItems).find(item => {
+        const spanText = item.querySelector('span').innerText.toLowerCase();
+        if (pageId === 'cover' && spanText.includes('home')) return true;
+        if (pageId === 'intro' && spanText.includes('concepts')) return true;
+        if (pageId === 'capabilities' && spanText.includes('capabilities')) return true;
+        if (pageId === 'config' && spanText.includes('configuration')) return true;
+        if (pageId === 'governance' && spanText.includes('security')) return true;
+        if (pageId === 'resources' && spanText.includes('certification')) return true;
+        return false;
+      });
+
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+      }
+
+      // Smooth scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* --- Light / Dark Theme Management --- */
+    function toggleTheme() {
+      const htmlElement = document.documentElement;
+      const currentTheme = htmlElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      
+      htmlElement.setAttribute('data-theme', newTheme);
+      
+      const iconSpan = document.getElementById('theme-icon');
+      const textSpan = document.getElementById('theme-text');
+      
+      if (newTheme === 'dark') {
+        iconSpan.innerText = '🌙';
+        textSpan.innerText = 'Dark Mode';
+      } else {
+        iconSpan.innerText = '☀️';
+        textSpan.innerText = 'Light Mode';
+      }
+    }
+
+    /* --- Authentic Bob Tips Array & Randomizer --- */
+    const bobTips = [
+      {
+        title: "Keep Standing Context Lean",
+        text: "Keep your workspace instructions and AGENTS.md short. Put only crucial style rules and test commands (e.g., pnpm test) there to keep token overhead low!"
+      },
+      {
+        title: "Use .bobignore Early",
+        text: "Create a .bobignore in your project root using gitignore syntax. It blocks Bob from accessing or editing sensitive keys, heavy build folders, and hidden files!"
+      },
+      {
+        title: "Simple AGENTS.md Setup",
+        text: "The AGENTS.md file in your project root is a cross-vendor format that lets you store persistent code style rules and directory expectations in plain markdown."
+      },
+      {
+        title: "Editable Propose Commands",
+        text: "When Bob proposes terminal scripts, edit them directly inside the prompt UI before clicking approve! This avoids restarting or rephrasing tasks from scratch."
+      },
+      {
+        title: "Task-Level vs Global Approvals",
+        text: "Use the Permissions button inside your active chat window to adjust tool group approvals just for this task. Global default privileges are set in settings."
+      },
+      {
+        title: "Model Router Optimization",
+        text: "Bob routes tasks dynamically between Fast, Premium, and Ultra model tiers based on complexity to guarantee response speed while preserving context cache!"
+      },
+      {
+        title: "Automatic /init Command",
+        text: "Run the '/init' command in the chat input to scan your codebase directories and automatically scaffold a structured, high-quality AGENTS.md file."
+      },
+      {
+        title: "Create Custom Agent Skills",
+        text: "Package repeating workflows into folders under .bob/skills/ with metadata and execution instructions defined inside a single, clean SKILL.md file."
+      }
+    ];
+
+    let currentTipIndex = 0;
+
+    function showTip(index) {
+      const tip = bobTips[index];
+      const tipContainer = document.getElementById('tip-content');
+      if (tipContainer) {
+        tipContainer.innerHTML = `<strong>${tip.title}:</strong> "${tip.text}"`;
+      }
+    }
+
+    function nextTip() {
+      // Cycle to a random tip that is different from the current one
+      let nextIndex = currentTipIndex;
+      while (nextIndex === currentTipIndex) {
+        nextIndex = Math.floor(Math.random() * bobTips.length);
+      }
+      currentTipIndex = nextIndex;
+      showTip(currentTipIndex);
+    }
+
+    // Initialize with a random tip and set a cycle interval of 8 seconds
+    document.addEventListener("DOMContentLoaded", () => {
+      currentTipIndex = Math.floor(Math.random() * bobTips.length);
+      showTip(currentTipIndex);
+      setInterval(nextTip, 8000);
+    });
+  </script>
+</body>
+</html>
